@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: cauldron_postgres_prod
+    restart: always
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+
+    volumes:
+      - postgres_data_prod:/var/lib/postgresql/data
+    networks:
+      - cauldron_network_prod
+    security_opt:
+      - no-new-privileges:true
+    user: postgres
+
+volumes:
+  postgres_data_prod:
+
+networks:
+  cauldron_network_prod:
+    driver: bridge
+    internal: true
