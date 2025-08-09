@@ -1,0 +1,9 @@
+.git
+**/bin
+**/obj
+**/.idea
+**/.vs
+**/.DS_Store
+**/Thumbs.db
+**/*.log
+

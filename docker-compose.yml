@@ -1,12 +1,13 @@
 services:
   postgres:
-    image: postgres:15-alpine
+    image: postgres:16-alpine
     container_name: cauldron_postgres_dev
     restart: unless-stopped
     environment:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      TZ: ${TZ:-UTC}
     ports:
       - "${DB_PORT}:5432"
     volumes:

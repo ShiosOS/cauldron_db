@@ -1,6 +1,37 @@
+
+# Environment files
 .env
+.env.local
+.env.*.local
+
+# Logs
 *.log
+logs/
+**/*.log
+
+# Postgres data (named volume bind mounts)
 postgres_data/
+
+# Node.js (if you add a Vue frontend later)
 node_modules/
+dist/
+
+# .NET build artifacts
 bin/
 obj/
+
+# Rider / Visual Studio
+.vs/
+.idea/
+*.user
+*.suo
+*.DotSettings.user
+
+# OS-specific
+.DS_Store
+Thumbs.db
+
+# Backup files
+*.bak
+*.tmp
+
