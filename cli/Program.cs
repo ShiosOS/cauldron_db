@@ -4,42 +4,20 @@ using Spectre.Console.Cli;
 using Cauldron.Cli.Inventory;
 using Cauldron.Cli.Commands;
 
-Env.Load();
-
-var store = Environment.GetEnvironmentVariable("CAULDRON_STORE") ?? "file";
-
-if (store.Equals("pg", StringComparison.OrdinalIgnoreCase))
-{
-    var dbHost = Environment.GetEnvironmentVariable("DB_HOST") ?? "localhost";
-    var dbPort = Environment.GetEnvironmentVariable("DB_PORT") ?? "5432";
-    var dbUser = Environment.GetEnvironmentVariable("POSTGRES_USER") ?? "postgres";
-    var dbPass = Environment.GetEnvironmentVariable("POSTGRES_PASSWORD") ?? "postgres";
-    var dbName = Environment.GetEnvironmentVariable("POSTGRES_DB") ?? "cauldron";
-
-    var cs = $"Host={dbHost};Port={dbPort};Username={dbUser};Password={dbPass};Database={dbName}";
-    Environment.SetEnvironmentVariable("DATABASE_URL", cs);
-
-    Console.WriteLine("DATABASE_URL: " + cs.Replace(dbPass, "***"));
-
-    try
-    {
-        await using var con = new Npgsql.NpgsqlConnection(cs);
-        await con.OpenAsync();
-        Console.WriteLine($"Connected as {dbUser} to {dbName}");
-    }
-    catch (Exception ex)
-    {
-        Console.Error.WriteLine("Postgres connection failed: " + ex.Message);
-        return 1;
-    }
-}
+Env.Load(); // loads .env if present (working dir)
 
 var services = new ServiceCollection();
 
-if (store.Equals("pg", StringComparison.OrdinalIgnoreCase))
+var store = Environment.GetEnvironmentVariable("CAULDRON_STORE") ?? "api";
+
+if (store.Equals("api", StringComparison.OrdinalIgnoreCase))
 {
-    var cs = Environment.GetEnvironmentVariable("DATABASE_URL")!;
-    services.AddSingleton<IInventory>(_ => new PostgresInventory(cs));
+    var apiBase = Environment.GetEnvironmentVariable("API_BASE") ?? "http://localhost:5180";
+    services.AddSingleton<IInventory>(_ => new ApiInventory(apiBase));
+}
+else if (store.Equals("file", StringComparison.OrdinalIgnoreCase))
+{
+    services.AddSingleton<IInventory, FileInventory>();
 }
 else
 {
@@ -51,7 +29,9 @@ services
     .AddSingleton<ListCommand>()
     .AddSingleton<RemoveCommand>()
     .AddSingleton<PruneCommand>()
-    .AddSingleton<SoonCommand>();
+    .AddSingleton<SoonCommand>()
+    .AddSingleton<LoginCommand>()
+    .AddSingleton<LogoutCommand>();
 
 var app = new CommandApp(new TypeRegistrar(services));
 app.Configure(cfg =>
@@ -62,6 +42,8 @@ app.Configure(cfg =>
     cfg.AddCommand<RemoveCommand>("remove").WithDescription("Removes an item from the inventory");
     cfg.AddCommand<PruneCommand>("prune").WithDescription("Delete all expired items");
     cfg.AddCommand<SoonCommand>("soon").WithDescription("List items expiring within N days");
+    cfg.AddCommand<LoginCommand>("login").WithDescription("Sign in and save a token");
+    cfg.AddCommand<LogoutCommand>("logout").WithDescription("Clear saved token");
 });
 
 return await app.RunAsync(args);
@@ -75,7 +57,6 @@ public sealed class TypeRegistrar : ITypeRegistrar
     public void RegisterInstance(Type service, object implementation) => _builder.AddSingleton(service, implementation);
     public void RegisterLazy(Type service, Func<object> factory) => _builder.AddSingleton(service, _ => factory());
 }
-
 public sealed class TypeResolver : ITypeResolver, IDisposable
 {
     private readonly ServiceProvider _provider;
